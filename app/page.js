@@ -22,20 +22,29 @@ const SITE_LIST = [
   '四谷'
 ];
 
+// 学年カラー定義 (指定カラー)
+const GRADE_COLORS = {
+  '1年': 'bg-lime-100 text-lime-800 border-lime-300',
+  '2年': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  '3年': 'bg-purple-100 text-purple-800 border-purple-300',
+  '4年': 'bg-pink-100 text-pink-800 border-pink-300',
+  '大学院・その他': 'bg-gray-100 text-gray-700 border-gray-300',
+};
+
 export default function Home() {
   const [activities, setActivities] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'mypage'
   const [selectedDate, setSelectedDate] = useState('');
 
-  // プロフィール情報 (localStorage)
+  // プロフィール情報 (localStorageで端末保存)
   const [profile, setProfile] = useState({
     real_name: '',
-    circle_name: '', // サークル内での名前（ニックネーム）
+    circle_name: '',
     student_id: '',
-    grade: '1年', // 学年
+    grade: '1年',
     line_name: '',
-    role: 'member', // 'member': 一般, 'executive': 幹部・管理者
+    role: 'member', // 'member': 一般, 'executive': 幹部・館付
   });
 
   // 新規活動入力データ
@@ -49,7 +58,7 @@ export default function Home() {
     capacity: 10,
   });
 
-  // 初期ロード：ローカルストレージとSupabaseデータの読み込み
+  // 初期ロード：ローカルストレージからのプロフィール読み込み ＆ Supabaseデータ取得
   useEffect(() => {
     const savedProfile = localStorage.getItem('user_profile');
     if (savedProfile) {
@@ -75,14 +84,14 @@ export default function Home() {
     }
   };
 
-  // プロフィール保存
+  // プロフィール保存 (localStorageに保持)
   const handleSaveProfile = (e) => {
     e.preventDefault();
     localStorage.setItem('user_profile', JSON.stringify(profile));
     alert('プロフィールを保存しました！');
   };
 
-  // 新規活動登録 (幹部用)
+  // 新規活動登録 (幹部・館付用)
   const handleCreateActivity = async (e) => {
     e.preventDefault();
     const { data, error } = await supabase
@@ -107,10 +116,10 @@ export default function Home() {
     }
   };
 
-  // 参加表明処理
+  // 参加表明処理 (マイページの保存データを送信)
   const handleJoin = async (activityId) => {
     if (!profile.line_name || !profile.real_name) {
-      alert('参加するにはマイページで本名とLINE表示名を登録してください。');
+      alert('参加するにはマイページで本名とLINE表示名を登録して保存してください。');
       setActiveTab('mypage');
       return;
     }
@@ -170,7 +179,7 @@ export default function Home() {
                 : 'bg-gray-100 text-gray-600'
             }`}
           >
-            活動一覧・カレンダー
+            カレンダー・活動一覧
           </button>
           <button
             onClick={() => setActiveTab('mypage')}
@@ -188,32 +197,33 @@ export default function Home() {
       {/* メインコンテンツ */}
       {activeTab === 'calendar' ? (
         <div>
-          {/* カレンダー・日付絞り込みフィルター */}
-          <div className="bg-white p-4 border rounded-xl shadow-sm mb-6">
-            <div className="flex justify-between items-center flex-wrap gap-2 mb-3">
-              <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
-                📅 開催日で絞り込み:
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="p-1.5 border rounded-lg text-sm bg-gray-50"
-                />
-                {selectedDate && (
-                  <button
-                    onClick={() => setSelectedDate('')}
-                    className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
-                  >
-                    全表示に戻す
-                  </button>
-                )}
-              </div>
+          {/* 大枠のカレンダー・日付選択エリア（メイン画面の最上部） */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6 shadow-sm">
+            <h2 className="text-base font-bold text-blue-900 mb-2 flex items-center gap-2">
+              📅 活動カレンダー選択
+            </h2>
+            <p className="text-xs text-blue-700 mb-4">
+              日付を選択すると、その日に開催予定の活動を絞り込んで表示します。
+            </p>
+            <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-inner">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="p-2 border rounded-lg text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              />
+              {selectedDate && (
+                <button
+                  onClick={() => setSelectedDate('')}
+                  className="whitespace-nowrap text-xs bg-gray-200 text-gray-700 px-3 py-2.5 rounded-lg font-bold hover:bg-gray-300 transition"
+                >
+                  全件表示に戻す
+                </button>
+              )}
             </div>
             {selectedDate && (
-              <p className="text-xs text-blue-600 font-medium">
-                「{selectedDate}」の活動を表示中
+              <p className="text-xs font-bold text-blue-800 mt-3 bg-white/80 py-1 px-3 rounded-full inline-block">
+                🔍 {selectedDate} の活動を表示中（全 {filteredActivities.length} 件）
               </p>
             )}
           </div>
@@ -223,7 +233,7 @@ export default function Home() {
             {profile.role === 'executive' && (
               <button
                 onClick={() => setShowAddModal(true)}
-                className="bg-green-600 text-white text-sm px-3 py-2 rounded-lg font-bold shadow hover:bg-green-700"
+                className="bg-green-600 text-white text-sm px-3 py-2 rounded-lg font-bold shadow hover:bg-green-700 transition"
               >
                 ＋ 活動を新規登録
               </button>
@@ -233,11 +243,13 @@ export default function Home() {
           {/* 活動カード一覧 */}
           <div className="space-y-4">
             {filteredActivities.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                {selectedDate
-                  ? '指定した日に募集中の活動はありません。'
-                  : '現在募集中の活動はありません。'}
-              </p>
+              <div className="text-center py-12 bg-white rounded-xl border">
+                <p className="text-gray-500 text-sm">
+                  {selectedDate
+                    ? `${selectedDate} に募集中の活動はありません。`
+                    : '現在募集中の活動はありません。'}
+                </p>
+              </div>
             ) : (
               filteredActivities.map((act) => {
                 const participantsList = act.participants || [];
@@ -255,64 +267,75 @@ export default function Home() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold mr-2">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2.5 py-1 rounded-md font-bold mr-2">
                           {act.site_name}
                         </span>
                         <h3 className="text-lg font-bold text-gray-900 mt-1">
                           {act.title}
                         </h3>
                       </div>
-                      <span className="text-xs font-semibold px-2 py-1 bg-gray-100 rounded text-gray-600">
+                      <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 rounded-full text-gray-600">
                         定員 {participantsList.length} / {act.capacity || 10}名
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm text-gray-600 mt-2 font-medium">
                       📅 {act.event_date} {act.start_time && `(${act.start_time}〜)`}
                     </p>
                     {act.location && (
                       <p className="text-sm text-gray-600">📍 {act.location}</p>
                     )}
                     {act.description && (
-                      <p className="text-sm text-gray-500 mt-2 bg-gray-50 p-2 rounded">
+                      <p className="text-sm text-gray-500 mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                         {act.description}
                       </p>
                     )}
 
-                    {/* 幹部・管理者のみ参加者の詳細（学年・LINE名など）を表示 */}
+                    {/* 幹部・館付のみ参加者名簿（LINE名・学籍番号・学年カラー）を表示 */}
                     {profile.role === 'executive' ? (
                       <div className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-sm">
                         <h4 className="font-bold text-blue-900 mb-2 text-xs flex justify-between items-center">
-                          <span>👥 参加者名簿（幹部限定表示）</span>
+                          <span>👥 参加者名簿（幹部・館付限定表示）</span>
                           <span>計 {participantsList.length}名</span>
                         </h4>
                         {participantsList.length > 0 ? (
                           <ul className="divide-y divide-gray-200">
-                            {participantsList.map((p) => (
-                              <li
-                                key={p.id}
-                                className="py-1.5 flex justify-between items-center text-xs"
-                              >
-                                <div>
-                                  <span className="font-bold text-gray-800">
-                                    {p.real_name || '名前未登録'}
-                                  </span>
-                                  {p.circle_name && (
-                                    <span className="text-gray-600 ml-1">
-                                      （{p.circle_name}）
+                            {participantsList.map((p) => {
+                              const gradeColor =
+                                GRADE_COLORS[p.grade] ||
+                                'bg-gray-100 text-gray-700 border-gray-200';
+                              return (
+                                <li
+                                  key={p.id}
+                                  className="py-2 flex justify-between items-center text-xs"
+                                >
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {/* 学年カラーバッジ */}
+                                    <span
+                                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${gradeColor}`}
+                                    >
+                                      {p.grade || '未指定'}
                                     </span>
-                                  )}
-                                  <span className="text-gray-500 ml-2">
-                                    {p.grade || ''} / {p.student_id || '学籍番号なし'}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <span className="bg-green-100 text-green-800 font-semibold px-2 py-0.5 rounded text-[10px]">
-                                    LINE: {p.line_name}
-                                  </span>
-                                </div>
-                              </li>
-                            ))}
+                                    <span className="font-bold text-gray-800">
+                                      {p.real_name || '名前未登録'}
+                                    </span>
+                                    {p.circle_name && (
+                                      <span className="text-gray-500">
+                                        （{p.circle_name}）
+                                      </span>
+                                    )}
+                                    <span className="text-gray-500 text-[11px]">
+                                      学籍: {p.student_id || '未入力'}
+                                    </span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="bg-green-100 text-green-800 font-semibold px-2 py-0.5 rounded text-[10px]">
+                                      LINE: {p.line_name || '未設定'}
+                                    </span>
+                                  </div>
+                                </li>
+                              );
+                            })}
                           </ul>
                         ) : (
                           <p className="text-gray-400 text-xs py-1">
@@ -321,7 +344,7 @@ export default function Home() {
                         )}
                       </div>
                     ) : (
-                      /* 一般ユーザー向け */
+                      /* 一般ユーザー向け表示 */
                       <div className="mt-3 text-xs text-gray-500">
                         現在の参加者数: {participantsList.length}名
                       </div>
@@ -332,14 +355,14 @@ export default function Home() {
                       {isJoined ? (
                         <button
                           onClick={() => handleCancelJoin(myParticipantObj.id)}
-                          className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold border border-red-200 hover:bg-red-100"
+                          className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold border border-red-200 hover:bg-red-100 transition"
                         >
                           参加をキャンセルする
                         </button>
                       ) : (
                         <button
                           onClick={() => handleJoin(act.id)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow"
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow transition"
                         >
                           この活動に参加する
                         </button>
@@ -356,7 +379,7 @@ export default function Home() {
         <div className="bg-white p-6 border rounded-xl shadow-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">マイページ設定</h2>
           <p className="text-xs text-gray-500 mb-6">
-            ※入力情報は端末内に保存され、活動参加時のみ送信されます。
+            ※入力情報は端末（ブラウザ）に保存され、活動参加時に自動送信されます。
           </p>
 
           <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -367,7 +390,7 @@ export default function Home() {
               <input
                 type="text"
                 required
-                placeholder="例: 桜美林 太郎"
+                placeholder="例: 山田 太郎"
                 value={profile.real_name}
                 onChange={(e) =>
                   setProfile({ ...profile, real_name: e.target.value })
@@ -393,21 +416,29 @@ export default function Home() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                学年
+                学年（指定カラー適用）
               </label>
-              <select
-                value={profile.grade}
-                onChange={(e) =>
-                  setProfile({ ...profile, grade: e.target.value })
-                }
-                className="w-full p-2 border rounded-lg text-sm bg-white"
-              >
-                <option value="1年">1年</option>
-                <option value="2年">2年</option>
-                <option value="3年">3年</option>
-                <option value="4年">4年</option>
-                <option value="大学院・その他">大学院・その他</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  value={profile.grade}
+                  onChange={(e) =>
+                    setProfile({ ...profile, grade: e.target.value })
+                  }
+                  className="w-full p-2 border rounded-lg text-sm bg-white"
+                >
+                  <option value="1年">1年（黄緑）</option>
+                  <option value="2年">2年（黄色）</option>
+                  <option value="3年">3年（紫）</option>
+                  <option value="4年">4年（ピンク）</option>
+                </select>
+                <span
+                  className={`text-xs font-bold px-2.5 py-1 rounded border whitespace-nowrap ${
+                    GRADE_COLORS[profile.grade] || 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {profile.grade}
+                </span>
+              </div>
             </div>
 
             <div>
@@ -416,7 +447,7 @@ export default function Home() {
               </label>
               <input
                 type="text"
-                placeholder="例: 221A0000"
+                placeholder="例: 00A0-000"
                 value={profile.student_id}
                 onChange={(e) =>
                   setProfile({ ...profile, student_id: e.target.value })
@@ -453,13 +484,13 @@ export default function Home() {
                 className="w-full p-2 border rounded-lg text-sm bg-white"
               >
                 <option value="member">一般メンバー</option>
-                <option value="executive">幹部・管理者（作成・名簿閲覧可）</option>
+                <option value="executive">幹部・館付（作成・名簿閲覧可）</option>
               </select>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg text-sm shadow hover:bg-blue-700 mt-4"
+              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg text-sm shadow hover:bg-blue-700 mt-4 transition"
             >
               設定を保存する
             </button>
@@ -467,7 +498,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* モーダル：新規活動登録 (幹部用) */}
+      {/* モーダル：新規活動登録 (幹部・館付用) */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -478,7 +509,7 @@ export default function Home() {
                 <input
                   type="text"
                   required
-                  placeholder="例: 週末ボランティア"
+                  placeholder="例: 夏祭り"
                   value={newActivity.title}
                   onChange={(e) =>
                     setNewActivity({ ...newActivity, title: e.target.value })

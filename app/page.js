@@ -269,7 +269,7 @@ export default function Home() {
                   type="text"
                   value={profile.studentId}
                   onChange={e => setProfile({ ...profile, studentId: e.target.value })}
-                  placeholder="例：A1234567"
+                  placeholder="例：99A1-999"
                   className="w-full border p-2 rounded text-sm mt-0.5"
                 />
               </div>

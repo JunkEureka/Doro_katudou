@@ -22,7 +22,7 @@ const SITE_LIST = [
   '四谷'
 ];
 
-// 学年カラー定義 (指定カラー)
+// 指定学年カラー
 const GRADE_COLORS = {
   '1年': 'bg-lime-100 text-lime-800 border-lime-300',
   '2年': 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -37,7 +37,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'mypage'
   const [selectedDate, setSelectedDate] = useState('');
 
-  // プロフィール情報 (localStorageで端末保存)
+  // カレンダー表示用年月ステート
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // プロフィール情報 (localStorage)
   const [profile, setProfile] = useState({
     real_name: '',
     circle_name: '',
@@ -58,7 +61,7 @@ export default function Home() {
     capacity: 10,
   });
 
-  // 初期ロード：ローカルストレージからのプロフィール読み込み ＆ Supabaseデータ取得
+  // 初期ロード：ローカルストレージとSupabaseデータの読み込み
   useEffect(() => {
     const savedProfile = localStorage.getItem('user_profile');
     if (savedProfile) {
@@ -84,7 +87,7 @@ export default function Home() {
     }
   };
 
-  // プロフィール保存 (localStorageに保持)
+  // プロフィール保存
   const handleSaveProfile = (e) => {
     e.preventDefault();
     localStorage.setItem('user_profile', JSON.stringify(profile));
@@ -116,7 +119,7 @@ export default function Home() {
     }
   };
 
-  // 参加表明処理 (マイページの保存データを送信)
+  // 参加表明処理
   const handleJoin = async (activityId) => {
     if (!profile.line_name || !profile.real_name) {
       alert('参加するにはマイページで本名とLINE表示名を登録して保存してください。');
@@ -160,6 +163,31 @@ export default function Home() {
     }
   };
 
+  // カレンダー計算ロジック
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  // 各日付に活動があるかチェック
+  const getActivityDatesSet = () => {
+    const dates = new Set();
+    activities.forEach((act) => {
+      if (act.event_date) dates.add(act.event_date);
+    });
+    return dates;
+  };
+  const activeDatesSet = getActivityDatesSet();
+
   // 日付フィルター処理
   const filteredActivities = selectedDate
     ? activities.filter((act) => act.event_date === selectedDate)
@@ -197,39 +225,102 @@ export default function Home() {
       {/* メインコンテンツ */}
       {activeTab === 'calendar' ? (
         <div>
-          {/* 大枠のカレンダー・日付選択エリア（メイン画面の最上部） */}
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6 shadow-sm">
-            <h2 className="text-base font-bold text-blue-900 mb-2 flex items-center gap-2">
-              📅 活動カレンダー選択
-            </h2>
-            <p className="text-xs text-blue-700 mb-4">
-              日付を選択すると、その日に開催予定の活動を絞り込んで表示します。
-            </p>
-            <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-inner">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="p-2 border rounded-lg text-base font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-              />
-              {selectedDate && (
+          {/* 大枠のカレンダー（グリッドUI） */}
+          <div className="bg-white border rounded-2xl p-4 shadow-sm mb-6">
+            {/* 月切替ヘッダー */}
+            <div className="flex justify-between items-center mb-4 px-2">
+              <button
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-bold text-gray-700"
+              >
+                ◀ 前月
+              </button>
+              <h2 className="text-lg font-bold text-gray-800">
+                {year}年 {month + 1}月
+              </h2>
+              <button
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-bold text-gray-700"
+              >
+                次月 ▶
+              </button>
+            </div>
+
+            {/* 曜日ヘッダー */}
+            <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-gray-500 mb-2">
+              <span className="text-red-500">日</span>
+              <span>月</span>
+              <span>火</span>
+              <span>水</span>
+              <span>木</span>
+              <span>金</span>
+              <span className="text-blue-500">土</span>
+            </div>
+
+            {/* 日付マス目 */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {/* 月初めの空白 */}
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`empty-${i}`} className="h-11 rounded-lg" />
+              ))}
+
+              {/* 日付ボタン */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                const isSelected = selectedDate === dateStr;
+                const hasActivity = activeDatesSet.has(dateStr);
+
+                return (
+                  <button
+                    key={dateStr}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedDate(''); // 解除
+                      } else {
+                        setSelectedDate(dateStr);
+                      }
+                    }}
+                    className={`h-11 rounded-xl flex flex-col items-center justify-center relative transition ${
+                      isSelected
+                        ? 'bg-blue-600 text-white font-bold shadow-md'
+                        : 'bg-gray-50 hover:bg-blue-50 text-gray-800'
+                    }`}
+                  >
+                    <span className="text-xs">{dayNum}</span>
+                    {/* 活動がある日の目印ポチ */}
+                    {hasActivity && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                          isSelected ? 'bg-white' : 'bg-blue-500'
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* フィルター状態・解除ボタン */}
+            {selectedDate && (
+              <div className="mt-4 pt-3 border-t flex justify-between items-center text-xs">
+                <span className="font-bold text-blue-700">
+                  選択中: {selectedDate} ({filteredActivities.length}件の活動)
+                </span>
                 <button
                   onClick={() => setSelectedDate('')}
-                  className="whitespace-nowrap text-xs bg-gray-200 text-gray-700 px-3 py-2.5 rounded-lg font-bold hover:bg-gray-300 transition"
+                  className="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg font-bold hover:bg-gray-300"
                 >
-                  全件表示に戻す
+                  絞り込み解除（全件表示）
                 </button>
-              )}
-            </div>
-            {selectedDate && (
-              <p className="text-xs font-bold text-blue-800 mt-3 bg-white/80 py-1 px-3 rounded-full inline-block">
-                🔍 {selectedDate} の活動を表示中（全 {filteredActivities.length} 件）
-              </p>
+              </div>
             )}
           </div>
 
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-gray-700">募集中の活動</h2>
+            <h2 className="text-lg font-bold text-gray-700">
+              {selectedDate ? `${selectedDate} の活動` : '募集中の活動一覧'}
+            </h2>
             {profile.role === 'executive' && (
               <button
                 onClick={() => setShowAddModal(true)}
@@ -291,7 +382,7 @@ export default function Home() {
                       </p>
                     )}
 
-                    {/* 幹部・館付のみ参加者名簿（LINE名・学籍番号・学年カラー）を表示 */}
+                    {/* 幹部・館付のみ参加者名簿（学年カラーバッジ・LINE名等）を表示 */}
                     {profile.role === 'executive' ? (
                       <div className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-sm">
                         <h4 className="font-bold text-blue-900 mb-2 text-xs flex justify-between items-center">
@@ -310,7 +401,6 @@ export default function Home() {
                                   className="py-2 flex justify-between items-center text-xs"
                                 >
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    {/* 学年カラーバッジ */}
                                     <span
                                       className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${gradeColor}`}
                                     >
@@ -344,7 +434,7 @@ export default function Home() {
                         )}
                       </div>
                     ) : (
-                      /* 一般ユーザー向け表示 */
+                      /* 一般ユーザー向け */
                       <div className="mt-3 text-xs text-gray-500">
                         現在の参加者数: {participantsList.length}名
                       </div>

@@ -528,7 +528,7 @@ export default function Home() {
               <input
                 type="text"
                 required
-                placeholder="例: 桜美林 太郎"
+                placeholder="例: 山田 太郎"
                 value={profile.real_name}
                 onChange={(e) =>
                   setProfile({ ...profile, real_name: e.target.value })
@@ -539,7 +539,7 @@ export default function Home() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                サークル内での名前（ニックネーム）
+                サークル内での名前（どろね）
               </label>
               <input
                 type="text"
@@ -568,7 +568,6 @@ export default function Home() {
                   <option value="2年">2年（黄色）</option>
                   <option value="3年">3年（紫）</option>
                   <option value="4年">4年（ピンク）</option>
-                  <option value="大学院・その他">大学院・その他</option>
                 </select>
                 <span
                   className={`text-xs font-bold px-2.5 py-1 rounded border whitespace-nowrap ${

@@ -28,7 +28,6 @@ const GRADE_COLORS = {
   '2年': 'bg-yellow-100 text-yellow-800 border-yellow-300',
   '3年': 'bg-purple-100 text-purple-800 border-purple-300',
   '4年': 'bg-pink-100 text-pink-800 border-pink-300',
-  '大学院・その他': 'bg-gray-100 text-gray-700 border-gray-300',
 };
 
 export default function Home() {

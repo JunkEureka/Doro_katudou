@@ -86,7 +86,8 @@ export default function Home() {
     e.preventDefault();
     const { error } = await supabase.from('activities').insert([newActivity]);
     if (error) {
-      alert('活動の登録に失敗しました');
+      // エラーの詳細メッセージを表示します
+      alert(`登録エラー詳細: ${error.message} (${error.details || ''})`);
     } else {
       alert('新しい活動を登録しました！');
       setShowAddModal(false);

@@ -26,11 +26,14 @@ export default function Home() {
   const [activities, setActivities] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'mypage'
+  const [selectedDate, setSelectedDate] = useState('');
 
   // プロフィール情報 (localStorage)
   const [profile, setProfile] = useState({
     real_name: '',
+    circle_name: '', // サークル内での名前（ニックネーム）
     student_id: '',
+    grade: '1年', // 学年
     line_name: '',
     role: 'member', // 'member': 一般, 'executive': 幹部・管理者
   });
@@ -51,7 +54,7 @@ export default function Home() {
     const savedProfile = localStorage.getItem('user_profile');
     if (savedProfile) {
       try {
-        setProfile(JSON.parse(savedProfile));
+        setProfile((prev) => ({ ...prev, ...JSON.parse(savedProfile) }));
       } catch (e) {
         console.error('Failed to parse profile', e);
       }
@@ -59,7 +62,7 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // データ取得 (participantsを紐付けて取得)
+  // データ取得
   const fetchData = async () => {
     const { data, error } = await supabase
       .from('activities')
@@ -116,7 +119,9 @@ export default function Home() {
       {
         activity_id: activityId,
         real_name: profile.real_name,
+        circle_name: profile.circle_name,
         student_id: profile.student_id,
+        grade: profile.grade,
         line_name: profile.line_name,
       },
     ]);
@@ -146,6 +151,11 @@ export default function Home() {
     }
   };
 
+  // 日付フィルター処理
+  const filteredActivities = selectedDate
+    ? activities.filter((act) => act.event_date === selectedDate)
+    : activities;
+
   return (
     <div className="max-w-3xl mx-auto p-4 pb-20 font-sans">
       {/* ヘッダー */}
@@ -160,7 +170,7 @@ export default function Home() {
                 : 'bg-gray-100 text-gray-600'
             }`}
           >
-            活動一覧
+            活動一覧・カレンダー
           </button>
           <button
             onClick={() => setActiveTab('mypage')}
@@ -178,9 +188,38 @@ export default function Home() {
       {/* メインコンテンツ */}
       {activeTab === 'calendar' ? (
         <div>
+          {/* カレンダー・日付絞り込みフィルター */}
+          <div className="bg-white p-4 border rounded-xl shadow-sm mb-6">
+            <div className="flex justify-between items-center flex-wrap gap-2 mb-3">
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-1">
+                📅 開催日で絞り込み:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="p-1.5 border rounded-lg text-sm bg-gray-50"
+                />
+                {selectedDate && (
+                  <button
+                    onClick={() => setSelectedDate('')}
+                    className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+                  >
+                    全表示に戻す
+                  </button>
+                )}
+              </div>
+            </div>
+            {selectedDate && (
+              <p className="text-xs text-blue-600 font-medium">
+                「{selectedDate}」の活動を表示中
+              </p>
+            )}
+          </div>
+
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-gray-700">募集中の活動</h2>
-            {/* 幹部のみ新規作成ボタンを表示 */}
             {profile.role === 'executive' && (
               <button
                 onClick={() => setShowAddModal(true)}
@@ -193,12 +232,14 @@ export default function Home() {
 
           {/* 活動カード一覧 */}
           <div className="space-y-4">
-            {activities.length === 0 ? (
+            {filteredActivities.length === 0 ? (
               <p className="text-gray-500 text-center py-8">
-                現在募集中の活動はありません。
+                {selectedDate
+                  ? '指定した日に募集中の活動はありません。'
+                  : '現在募集中の活動はありません。'}
               </p>
             ) : (
-              activities.map((act) => {
+              filteredActivities.map((act) => {
                 const participantsList = act.participants || [];
                 const myParticipantObj = participantsList.find(
                   (p) =>
@@ -238,7 +279,7 @@ export default function Home() {
                       </p>
                     )}
 
-                    {/* 幹部・管理者のみ参加者の詳細（LINE名など）を表示 */}
+                    {/* 幹部・管理者のみ参加者の詳細（学年・LINE名など）を表示 */}
                     {profile.role === 'executive' ? (
                       <div className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-sm">
                         <h4 className="font-bold text-blue-900 mb-2 text-xs flex justify-between items-center">
@@ -256,8 +297,13 @@ export default function Home() {
                                   <span className="font-bold text-gray-800">
                                     {p.real_name || '名前未登録'}
                                   </span>
+                                  {p.circle_name && (
+                                    <span className="text-gray-600 ml-1">
+                                      （{p.circle_name}）
+                                    </span>
+                                  )}
                                   <span className="text-gray-500 ml-2">
-                                    ({p.student_id || '学籍番号なし'})
+                                    {p.grade || ''} / {p.student_id || '学籍番号なし'}
                                   </span>
                                 </div>
                                 <div className="text-right">
@@ -275,7 +321,7 @@ export default function Home() {
                         )}
                       </div>
                     ) : (
-                      /* 一般ユーザー向けには人数だけ表示 */
+                      /* 一般ユーザー向け */
                       <div className="mt-3 text-xs text-gray-500">
                         現在の参加者数: {participantsList.length}名
                       </div>
@@ -328,6 +374,40 @@ export default function Home() {
                 }
                 className="w-full p-2 border rounded-lg text-sm"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                サークル内での名前（ニックネーム）
+              </label>
+              <input
+                type="text"
+                placeholder="例: たろー"
+                value={profile.circle_name}
+                onChange={(e) =>
+                  setProfile({ ...profile, circle_name: e.target.value })
+                }
+                className="w-full p-2 border rounded-lg text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                学年
+              </label>
+              <select
+                value={profile.grade}
+                onChange={(e) =>
+                  setProfile({ ...profile, grade: e.target.value })
+                }
+                className="w-full p-2 border rounded-lg text-sm bg-white"
+              >
+                <option value="1年">1年</option>
+                <option value="2年">2年</option>
+                <option value="3年">3年</option>
+                <option value="4年">4年</option>
+                <option value="大学院・その他">大学院・その他</option>
+              </select>
             </div>
 
             <div>

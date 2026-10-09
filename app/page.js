@@ -398,3 +398,101 @@ export default function Home() {
                 <input
                   type="text"
                   required
+                  placeholder="例: 週末ボランティア"
+                  value={newActivity.title}
+                  onChange={(e) =>
+                    setNewActivity({ ...newActivity, title: e.target.value })
+                  }
+                  className="w-full p-2 border rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">活動先名</label>
+                <select
+                  value={newActivity.site_name}
+                  onChange={(e) =>
+                    setNewActivity({ ...newActivity, site_name: e.target.value })
+                  }
+                  className="w-full p-2 border rounded text-sm bg-white"
+                >
+                  {SITE_LIST.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">開催日</label>
+                <input
+                  type="date"
+                  required
+                  value={newActivity.event_date}
+                  onChange={(e) =>
+                    setNewActivity({ ...newActivity, event_date: e.target.value })
+                  }
+                  className="w-full p-2 border rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">集合場所</label>
+                <input
+                  type="text"
+                  placeholder="例: XX駅 東口改札前"
+                  value={newActivity.location}
+                  onChange={(e) =>
+                    setNewActivity({ ...newActivity, location: e.target.value })
+                  }
+                  className="w-full p-2 border rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">定員（人数）</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={newActivity.capacity}
+                  onChange={(e) =>
+                    setNewActivity({ ...newActivity, capacity: parseInt(e.target.value) || 10 })
+                  }
+                  className="w-full p-2 border rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">詳細説明</label>
+                <textarea
+                  placeholder="持ち物や注意事項など"
+                  value={newActivity.description}
+                  onChange={(e) =>
+                    setNewActivity({ ...newActivity, description: e.target.value })
+                  }
+                  className="w-full p-2 border rounded text-sm h-20"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="w-1/2 bg-gray-200 text-gray-700 font-bold py-2 rounded text-sm"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 bg-green-600 text-white font-bold py-2 rounded text-sm"
+                >
+                  登録する
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

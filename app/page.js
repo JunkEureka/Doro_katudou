@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-// 決まっている15個の活動先リスト（ここを書き換えると選択肢が変わります）
+// 15個の活動先リスト（実際の活動先名に変更可能です）
 const SITE_LIST = [
   '活動先1', '活動先2', '活動先3', '活動先4', '活動先5',
   '活動先6', '活動先7', '活動先8', '活動先9', '活動先10',
@@ -20,7 +20,7 @@ export default function Home() {
 
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // 新規活動フォーム用データ
+  // 新規活動フォーム
   const [newActivity, setNewActivity] = useState({
     title: '',
     site_name: SITE_LIST[0],
@@ -38,7 +38,7 @@ export default function Home() {
     userName: '',
     lineName: '',
     grade: '1年',
-    role: '一般メンバー' // '一般メンバー' | '幹部・管理者'
+    role: '一般メンバー'
   });
 
   // 学年カラー設定
@@ -71,7 +71,6 @@ export default function Home() {
     setLoading(false);
   };
 
-  // プロフィール保存
   const handleProfileSave = (e) => {
     e.preventDefault();
     localStorage.setItem('circle_real_name', profile.realName);
@@ -80,10 +79,9 @@ export default function Home() {
     localStorage.setItem('circle_line_name', profile.lineName);
     localStorage.setItem('circle_grade', profile.grade);
     localStorage.setItem('circle_role', profile.role);
-    alert('プロフィールと役職を保存しました！');
+    alert('プロフィールを保存しました！');
   };
 
-  // 活動の追加（幹部・管理者専用）
   const handleCreateActivity = async (e) => {
     e.preventDefault();
     const { error } = await supabase.from('activities').insert([newActivity]);
@@ -105,9 +103,8 @@ export default function Home() {
     }
   };
 
-  // 活動の削除（幹部・管理者専用）
   const handleDeleteActivity = async (actId) => {
-    if (!confirm('この活動を削除しますか？（参加者データも削除されます）')) return;
+    if (!confirm('この活動を削除しますか？')) return;
     const { error } = await supabase.from('activities').delete().eq('id', actId);
     if (error) {
       alert('削除に失敗しました');
@@ -119,7 +116,7 @@ export default function Home() {
 
   const handleJoin = async (actId) => {
     if (!profile.userName || !profile.lineName) {
-      alert('先にマイページでプロフィール（名前・LINE名）を登録してください');
+      alert('先にマイページでプロフィールを登録してください');
       setActiveTab('mypage');
       return;
     }
@@ -136,7 +133,7 @@ export default function Home() {
     ]);
 
     if (error) {
-      alert('登録に失敗しました（既に登録済みの可能性があります）');
+      alert('登録に失敗しました');
     } else {
       fetchData();
     }
@@ -157,7 +154,6 @@ export default function Home() {
     }
   };
 
-  // カレンダー計算
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
@@ -174,7 +170,6 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-gray-50 flex flex-col font-sans pb-10">
-      {/* ヘッダー */}
       <header className="bg-blue-600 text-white p-4 text-center font-bold text-lg shadow flex justify-between items-center">
         <span>サークル活動ポータル</span>
         {isAdmin && (
@@ -182,7 +177,6 @@ export default function Home() {
         )}
       </header>
 
-      {/* タブ切り替え */}
       <div className="flex border-b bg-white">
         <button
           onClick={() => setActiveTab('calendar')}
@@ -202,9 +196,7 @@ export default function Home() {
         {loading ? (
           <div className="text-center py-10 text-gray-400">読み込み中...</div>
         ) : activeTab === 'calendar' ? (
-          /* カレンダー画面 */
           <div className="space-y-4">
-            {/* 幹部・管理者用：活動追加ボタン */}
             {isAdmin && (
               <button
                 onClick={() => setShowAddModal(true)}
@@ -253,7 +245,6 @@ export default function Home() {
             <div className="text-xs text-gray-400 text-center">※ 日程をタップすると詳細が表示されます</div>
           </div>
         ) : (
-          /* マイページ画面 */
           <div className="space-y-6">
             <form onSubmit={handleProfileSave} className="bg-white p-4 rounded-xl shadow space-y-3">
               <div className="flex justify-between items-center border-b pb-2">
@@ -333,7 +324,6 @@ export default function Home() {
               </button>
             </form>
 
-            {/* 参加予定一覧 */}
             <div className="bg-white p-4 rounded-xl shadow space-y-3">
               <h3 className="font-bold text-sm">参加予定の活動 ({myJoinedActivities.length}件)</h3>
               {myJoinedActivities.length === 0 ? (
@@ -361,7 +351,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* モーダル：活動追加（幹部・管理者用） */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-5 w-full max-w-sm space-y-3 max-h-[90vh] overflow-y-auto">
@@ -455,7 +444,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* モーダル：活動詳細（全ユーザー） */}
       {selectedActivity && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-5 w-full max-w-sm space-y-4 max-h-[90vh] overflow-y-auto">
@@ -473,7 +461,6 @@ export default function Home() {
               <p className="pt-1 text-gray-800">{selectedActivity.description}</p>
             </div>
 
-            {/* 人数ゲージ（プログレスバー） */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-bold">
                 <span>募集状況</span>
@@ -487,7 +474,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 参加ボタン */}
             {participants.some(p => p.activity_id === selectedActivity.id && p.user_name === profile.userName) ? (
               <button
                 onClick={() => { handleCancel(selectedActivity.id); setSelectedActivity(null); }}
@@ -509,7 +495,6 @@ export default function Home() {
               </button>
             )}
 
-            {/* 幹部・管理者専用削除ボタン */}
             {isAdmin && (
               <button
                 onClick={() => handleDeleteActivity(selectedActivity.id)}
@@ -519,7 +504,6 @@ export default function Home() {
               </button>
             )}
 
-            {/* 参加者リスト */}
             <div className="border-t pt-3">
               <h4 className="font-bold text-xs mb-2">参加者一覧</h4>
               <div className="space-y-1 max-h-32 overflow-y-auto">

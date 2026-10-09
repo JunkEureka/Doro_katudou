@@ -94,6 +94,22 @@ export default function Home() {
     alert('プロフィールを保存しました！');
   };
 
+  // マイページ情報リセット（初期化）
+  const handleResetProfile = () => {
+    if (confirm('マイページの入力情報を完全に削除して初期化しますか？')) {
+      localStorage.removeItem('user_profile');
+      setProfile({
+        real_name: '',
+        circle_name: '',
+        student_id: '',
+        grade: '1年',
+        line_name: '',
+        role: 'member',
+      });
+      alert('プロフィール情報をリセットしました。');
+    }
+  };
+
   // 新規活動登録 (幹部・館付用)
   const handleCreateActivity = async (e) => {
     e.preventDefault();
@@ -115,6 +131,27 @@ export default function Home() {
         description: '',
         capacity: 10,
       });
+      fetchData();
+    }
+  };
+
+  // 活動削除処理 (幹部・館付用)
+  const handleDeleteActivity = async (activityId, title) => {
+    if (!confirm(`「${title}」の活動募集を削除しますか？\n（参加者データも同時に削除されます）`)) return;
+
+    // まず関連する参加者データを削除
+    await supabase.from('participants').delete().eq('activity_id', activityId);
+
+    // 活動本体を削除
+    const { error } = await supabase
+      .from('activities')
+      .delete()
+      .eq('id', activityId);
+
+    if (error) {
+      alert(`削除に失敗しました: ${error.message}`);
+    } else {
+      alert('活動募集を削除しました。');
       fetchData();
     }
   };
@@ -354,7 +391,7 @@ export default function Home() {
                 return (
                   <div
                     key={act.id}
-                    className="border rounded-xl p-4 bg-white shadow-sm hover:shadow transition"
+                    className="border rounded-xl p-4 bg-white shadow-sm hover:shadow transition relative"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -365,9 +402,21 @@ export default function Home() {
                           {act.title}
                         </h3>
                       </div>
-                      <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 rounded-full text-gray-600">
-                        定員 {participantsList.length} / {act.capacity || 10}名
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 rounded-full text-gray-600">
+                          定員 {participantsList.length} / {act.capacity || 10}名
+                        </span>
+                        {/* 幹部・館付限定の活動削除ボタン */}
+                        {profile.role === 'executive' && (
+                          <button
+                            onClick={() => handleDeleteActivity(act.id, act.title)}
+                            className="text-xs bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 px-2 py-1 rounded-lg font-bold transition"
+                            title="この活動募集を削除"
+                          >
+                            🗑️ 削除
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-sm text-gray-600 mt-2 font-medium">
@@ -480,7 +529,7 @@ export default function Home() {
               <input
                 type="text"
                 required
-                placeholder="例: 山田 太郎"
+                placeholder="例: 桜美林 太郎"
                 value={profile.real_name}
                 onChange={(e) =>
                   setProfile({ ...profile, real_name: e.target.value })
@@ -520,6 +569,7 @@ export default function Home() {
                   <option value="2年">2年（黄色）</option>
                   <option value="3年">3年（紫）</option>
                   <option value="4年">4年（ピンク）</option>
+                  <option value="大学院・その他">大学院・その他</option>
                 </select>
                 <span
                   className={`text-xs font-bold px-2.5 py-1 rounded border whitespace-nowrap ${
@@ -537,7 +587,7 @@ export default function Home() {
               </label>
               <input
                 type="text"
-                placeholder="例: 00A0-000"
+                placeholder="例: 221A0000"
                 value={profile.student_id}
                 onChange={(e) =>
                   setProfile({ ...profile, student_id: e.target.value })
@@ -585,6 +635,16 @@ export default function Home() {
               設定を保存する
             </button>
           </form>
+
+          {/* マイページ初期化ボタン */}
+          <div className="mt-8 pt-4 border-t text-center">
+            <button
+              onClick={handleResetProfile}
+              className="text-xs text-gray-400 hover:text-red-500 underline transition"
+            >
+              🗑️ マイページ情報をリセット（初期化）
+            </button>
+          </div>
         </div>
       )}
 
@@ -599,7 +659,7 @@ export default function Home() {
                 <input
                   type="text"
                   required
-                  placeholder="例: 夏祭り"
+                  placeholder="例: 週末ボランティア"
                   value={newActivity.title}
                   onChange={(e) =>
                     setNewActivity({ ...newActivity, title: e.target.value })
